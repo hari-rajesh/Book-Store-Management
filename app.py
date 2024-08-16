@@ -4,12 +4,10 @@ import sqlite3
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 
-# Function to connect to the SQLite database
 def connect_db():
     conn = sqlite3.connect('bookstore.db')
     return conn
 
-# Initialize the database
 def init_db():
     conn = connect_db()
     cursor = conn.cursor()
@@ -18,8 +16,7 @@ def init_db():
                          name TEXT,
                          author TEXT,
                          price REAL,
-                         no_of_stocks INTEGER)''')  # Added no_of_stocks field
-    # Rest of the code for other tables...
+                         no_of_stocks INTEGER)''')
     cursor.execute('''CREATE TABLE IF NOT EXISTS customers
                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT,
@@ -39,11 +36,6 @@ def init_db():
 
 @app.route('/')
 def index():
-    # conn = connect_db()
-    # cursor = conn.cursor()
-    # cursor.execute("SELECT * FROM books")
-    # books = cursor.fetchall()
-    # conn.close()
     return render_template('login.html')
 @app.route('/register')
 def register_page():
@@ -78,13 +70,12 @@ def login():
         return render_template('owner.html')
     user = cursor.fetchone()
     if user:
-        # Assuming password_hash is stored as a hashed value in the database
         hh_pass = user[3]
 
         if password == hh_pass: 
-            return render_template('customer.html', books=books)  # Credentials match
+            return render_template('customer.html', books=books)
         else:
-            return "Incorrect Password"  # Incorrect password
+            return "Incorrect Password" 
     else:
         return render_template('register.html')
 
@@ -108,13 +99,13 @@ def add_book():
     title = request.form['title']
     author = request.form['author']
     price = request.form['price']
-    no_of_stocks = int(request.form['no_of_stocks'])  # Convert input to integer
+    no_of_stocks = int(request.form['no_of_stocks'])
     conn = connect_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM books")
     books = cursor.fetchall()
     cursor.execute("INSERT INTO books (name, author, price, no_of_stocks) VALUES (?, ?, ?, ?)",
-                   (title, author, price, no_of_stocks))  # Include no_of_stocks in the query
+                   (title, author, price, no_of_stocks))
     conn.commit()
     conn.close()
     
@@ -125,7 +116,7 @@ def add_book():
 def update_book():
     title = request.form['title']
     price = request.form['price']
-    no_of_stocks = int(request.form['no_of_stocks'])  # Convert input to integer
+    no_of_stocks = int(request.form['no_of_stocks'])
     conn = connect_db()
     cursor1 = conn.cursor()
     cursor2 = conn.cursor()
@@ -134,7 +125,7 @@ def update_book():
     iid = req_book[0]
     books = cursor1.fetchall()
     cursor2.execute("UPDATE books set price=?, no_of_stocks=? WHERE id = ?",
-                   (price, no_of_stocks, iid))  # Include no_of_stocks in the query
+                   (price, no_of_stocks, iid))
     conn.commit()
     conn.close()
     
@@ -161,20 +152,17 @@ def purchase_book():
     books = cursor.fetchall()
 
     try:
-        # Check if the requested quantity is available in stock
         cursor.execute("SELECT no_of_stocks FROM books WHERE id=?", (book_id,))
         current_stock = cursor.fetchone()[0]
         if quantity > current_stock:
             raise Exception('Not enough stock available!')
 
-        # Reduce the stock in the books table
         new_stock = current_stock - quantity
         if new_stock == 0:
             cursor.execute("DELETE FROM books WHERE id=?", (book_id,))
         else:
             cursor.execute("UPDATE books SET no_of_stocks=? WHERE id=?", (new_stock, book_id))
 
-        # Insert the purchase record
         cursor.execute("INSERT INTO customers (name, email) VALUES (?, ?)", (name, email))
         customer_id = cursor.lastrowid
         cursor.execute("INSERT INTO purchases (customer_id, book_id, quantity) VALUES (?, ?, ?)", (customer_id, book_id, quantity))
